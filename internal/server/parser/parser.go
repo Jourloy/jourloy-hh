@@ -22,6 +22,13 @@ type ParserService struct {
 	done     chan struct{}
 }
 
+// NewParserService creates a new instance of the ParserService.
+//
+// Parameters:
+// - d: a PostgresRepository used by the ParserService.
+//
+// Returns:
+// - A pointer to the newly created ParserService.
 func NewParserService(d storage.PostgresRepository) *ParserService {
 	return &ParserService{
 		database: d,
@@ -29,6 +36,10 @@ func NewParserService(d storage.PostgresRepository) *ParserService {
 	}
 }
 
+// StartTickers starts the ticker for parsing and updating tokens.
+//
+// No parameters.
+// No return type.
 func (p *ParserService) StartTickers() {
 	parseTicker := time.NewTicker(10 * time.Minute)
 	tokenTicker := time.NewTicker(1 * time.Minute)
@@ -49,6 +60,10 @@ func (p *ParserService) StartTickers() {
 	}
 }
 
+// StopTickers stops the tickers in the ParserService.
+//
+// No parameters.
+// No return types.
 func (p *ParserService) StopTickers() {
 	p.done <- struct{}{}
 }
@@ -93,6 +108,14 @@ type VacancyResponse struct {
 	Items []Vacancy `json:"items"`
 }
 
+// Parse is a function that parses vacancies.
+//
+// It retrieves all users from the database and parses their resumes using
+// the GetNestResumes and GetGoResumes methods. Vacancies obtained from the
+// resumes are added using the AddVacancy method.
+//
+// No parameters.
+// No return types.
 func (p *ParserService) Parse() {
 	logger.Debug(`Parsing vacancies...`)
 
@@ -132,6 +155,12 @@ func (p *ParserService) Parse() {
 	}
 }
 
+// AddVacancy parses the response from an HTTP request and adds the vacancy to the database.
+//
+// Parameters:
+// - res: The HTTP response containing the vacancy information.
+//
+// No return types.
 func (p *ParserService) AddVacancy(res *http.Response) {
 	// Read response
 	resBody, err := io.ReadAll(res.Body)
@@ -161,6 +190,7 @@ func (p *ParserService) AddVacancy(res *http.Response) {
 			continue
 		}
 
+		// Prepare data
 		var SalaryCurrency string
 		if v.Salary != nil && v.Salary.Currency != nil {
 			SalaryCurrency = *v.Salary.Currency
@@ -218,6 +248,13 @@ func (p *ParserService) AddVacancy(res *http.Response) {
 	}
 }
 
+// GetGoResumes retrieves similar vacancies related to the given user's resume and the search criteria of "Go".
+//
+// Parameters:
+// - user: the user for whom to retrieve similar vacancies.
+//
+// Returns:
+// - A HTTP response containing the similar vacancies.
 func (p *ParserService) GetGoResumes(user storage.UserModel) *http.Response {
 	uri := `https://api.hh.ru/resumes/` + user.ResumeID + `/similar_vacancies`
 
@@ -244,6 +281,13 @@ func (p *ParserService) GetGoResumes(user storage.UserModel) *http.Response {
 	return res
 }
 
+// GetNestResumes retrieves a list of similar vacancies based on the user's resume and the search criteria of "Nest.js".
+//
+// Parameters:
+// - user: a storage.UserModel object representing the user.
+//
+// Returns:
+// - A object containing the response from the API.
 func (p *ParserService) GetNestResumes(user storage.UserModel) *http.Response {
 	uri := `https://api.hh.ru/resumes/` + user.ResumeID + `/similar_vacancies`
 
@@ -277,6 +321,14 @@ type HHTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// UpdateTokens updates the tokens for all users.
+//
+// This function retrieves all users from the database and checks if their token needs to be updated.
+// If the token needs to be updated, a request is made to the specified API endpoint with the user's refresh token.
+// The response is then parsed and the user's access token, refresh token, and expiration time are updated in the database.
+//
+// No parameters.
+// No return values.
 func (p *ParserService) UpdateTokens() {
 	logger.Debug(`Update tokens...`)
 

@@ -24,6 +24,17 @@ type AuthService struct {
 	database storage.PostgresRepository
 }
 
+// NewAuthService creates a new instance of AuthService.
+//
+// It takes a PostgresRepository as a parameter and initializes the
+// clientID, clientSecret, and redirectURI variables using environment
+// variables. It then returns a pointer to the newly created AuthService.
+//
+// Parameters:
+// - d: a PostgresRepository object that represents the database.
+//
+// Return:
+// - A pointer to the AuthService instance.
 func NewAuthService(d storage.PostgresRepository) *AuthService {
 	id, exist := os.LookupEnv(`HH_CLIENT_ID`)
 	if !exist {
@@ -48,6 +59,12 @@ func NewAuthService(d storage.PostgresRepository) *AuthService {
 	}
 }
 
+// Redirect redirects the user to the authorization endpoint.
+//
+// Parameters:
+// - ctx: A pointer to the gin.Context object.
+//
+// No return type.
 func (a *AuthService) Redirect(ctx *gin.Context) {
 	uri := `https://hh.ru/oauth/authorize`
 	params := url.Values{
@@ -80,6 +97,19 @@ type HHResumeResponse struct {
 	Items []HHResume `json:"items"`
 }
 
+// Callback handles the callback from the OAuth server.
+//
+// It expects a "code" query parameter in the request URL. If the code
+// is empty, it logs an error and returns. Otherwise, it sends a POST
+// request to the OAuth server to exchange the code for access and
+// refresh tokens. It then sends a GET request to the resumes API to
+// fetch the user's resume. Finally, it saves the user in the database
+// and returns a JSON response with a status of "ok".
+//
+// Parameters:
+// - ctx: A pointer to the gin.Context object.
+//
+// No return type.
 func (a *AuthService) Callback(ctx *gin.Context) {
 	// Check code
 	code := ctx.Query(`code`)
