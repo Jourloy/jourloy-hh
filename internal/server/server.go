@@ -28,9 +28,11 @@ func Start() {
 
 	// Groups
 	authGroup := r.Group("/auth")
+	parserGroup := r.Group("/parser")
 
 	// Register handlers
 	handlers.RegisterAuthHandler(authGroup, database)
+	handlers.RegisterParsehHandler(parserGroup, database)
 
 	log.Debug(`Server started`)
 
